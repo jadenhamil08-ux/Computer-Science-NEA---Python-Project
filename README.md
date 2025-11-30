@@ -2,7 +2,7 @@
 **Ongoing project - This A-Level NEA project is currently being developed. Code and documentation will be updated continuously.**
 
 **Project Overview:**
-For my NEA, I am creating a game similar to UNO, which aims to introduce myre strategy to the game. I hope by the end of my project, I will create a program that elevates the gameplay experience of UNO, and provides a satisfactory experience for my users.
+For my NEA, I am creating a game similar to UNO, which aims to introduce more strategy to the game. I hope by the end of my project, I will create a program that elevates the gameplay experience of UNO, and provides a satisfactory experience for my users.
 
 **Requirements:**
 - Python 3.13.9
