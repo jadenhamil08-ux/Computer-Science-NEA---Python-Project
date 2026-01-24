@@ -1,5 +1,6 @@
-#importing libraries
+# importing libraries
 from dotenv import load_dotenv, find_dotenv
+import hashlib
 import os
 import pygame
 import random
@@ -7,21 +8,21 @@ import smtplib
 import string
 import sqlite3
 
-#initialising pygame
+# initialising pygame
 pygame.init()
 
 # screen creation
 info = pygame.display.Info()
 screen = pygame.display.set_mode((info.current_w,info.current_h), pygame.FULLSCREEN | pygame.SCALED)
 
-#get screen size
+# get screen size
 title_w, title_h = screen.get_size()
 
-#load original image / scale page
+# load original image / scale page
 bg = pygame.image.load("Frontpage.png").convert()
 bg = pygame.transform.smoothscale(bg, (title_w, title_h))
 
-#title class
+# title class
 class Title:
     def __init__(self,text,font,colour,x,y):
         self.text = font.render(text,True,colour)
@@ -30,16 +31,16 @@ class Title:
     def draw(self, surface):
         surface.blit(self.text,self.rect)
 
-#title font
+# title font
 title_font = pygame.font.Font("Jomhuria-Regular.ttf", 300)
 
-#main label font
+# main label font
 normal_font = pygame.font.Font("Jomhuria-Regular.ttf", 100)
 
-#input font
+# input font
 input_font = pygame.font.Font("Jomhuria-Regular.ttf", 80)
 
-#button class
+# BUTTON CLASS
 class Button:
     def __init__(self,x,y,w,h,text,font,colour,hover_colour,text_colour,border_colour,border_width):
         self.rect = pygame.Rect(x,y,w,h)
@@ -65,21 +66,22 @@ class Button:
                     return True
         return False
 
-#render text over multiple lines
+# render text over multiple lines
 def render_multi_lines(surface,text,x,y,font,colour):
     lines = text.splitlines()
     line_height = font.get_linesize()
     for index,line in enumerate(lines):
         surface.blit(font.render(line,True,colour),(x,y + (index * line_height)))
 
-#button font and position (when width == 300)
+# button font and position (when width == 300)
 button_x = title_w // 2 - 150
 button_y = title_h // 2
 button_font = pygame.font.Font("Jomhuria-Regular.ttf", 80)
 
-#class for input boxes
+# INPUT BOX CLASS
 class InputBox:
-    def __init__(self,x,y,w,h,text_colour,font):
+    # initialise input box
+    def __init__(self,x,y,w,h,text_colour,font,max_chars,hashing=False):
         self.rect = pygame.Rect(x,y,w,h)
         self.font = font
         self.text_colour = text_colour
@@ -91,8 +93,9 @@ class InputBox:
         self.border_colour = "#000000"
         self.border_width = 5
         self.active = False
-        self.inactive = True
-
+        self.hashing = hashing
+        self.max_chars = max_chars
+    # do input box events
     def do_event(self,event):
         if event.type == pygame.MOUSEBUTTONDOWN:
             self.active = self.rect.collidepoint(event.pos)
@@ -103,21 +106,22 @@ class InputBox:
         if event.type == pygame.KEYDOWN:
             if self.active:
                 if event.key == pygame.K_RETURN:
-                    print(self.text)
+                    self.active = False
+                    self.colour = self.colourInactive
                 elif event.key == pygame.K_BACKSPACE:
                     self.text = self.text[:-1]
                 else:
-                    self.text += event.unicode
-
+                    if len(self.text) < self.max_chars:
+                      self.text += event.unicode
+    # draw input box
     def draw(self, surface):
         mouse_pos = pygame.mouse.get_pos()
         if self.rect.collidepoint(mouse_pos):
             pygame.draw.rect(surface, self.hover_colour, self.rect)
         else:
             pygame.draw.rect(surface, self.colour, self.rect)
-        textsurface = self.font.render(self.text, True, self.text_colour)
-        width = max(self.rect.w,textsurface.get_width()+10)
-        self.rect.w = width
+        displaytext = "*" * len(self.text) if self.hashing else self.text
+        textsurface = self.font.render(displaytext, True, self.text_colour)
         surface.blit(textsurface,(self.rect.x+5,self.rect.y))
         pygame.draw.rect(surface, self.border_colour, self.rect, width=self.border_width)
 
@@ -141,27 +145,28 @@ def addUser(username,email,password):
     with sqlite3.connect("credentials.db") as connect:
         cur = connect.cursor()
         cur.execute("INSERT INTO user_credentials (username, email, password) VALUES (?,?,?)",
-        (username,email,password))
+        (username,email,hash_input(password)))
         connect.commit()
 
 # change password in the database
 def changePassword(email,password):
     with sqlite3.connect("credentials.db") as connect:
         cur = connect.cursor()
-        cur.execute("UPDATE user_credentials SET password=? WHERE email=?",(password,email))
+        cur.execute("UPDATE user_credentials SET password=? WHERE email=?",(hash_input(password),email))
         connect.commit()
 
 #===================================#
 # DATA VALIDATIONS FOR LOGIN SYSTEM #
 #===================================#
 
-#presence check function
+# presence check function
 def presence_check(text):
     return text.strip() != ""
 
+# presence check error message
 presence_check_text = Title("Not all fields are filled in - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
-#length check function for login system username
+# length check function for login system username
 def length_check_user(text):
     if len(text) < 4:
         return 1
@@ -169,7 +174,7 @@ def length_check_user(text):
         return 2
     return None
 
-#length check function for password:
+# length check function for password:
 def length_check_pass(text):
     if len(text) < 8:
         return 1
@@ -177,18 +182,19 @@ def length_check_pass(text):
         return 2
     return None
 
+# length check error messages
 length_check_text_user_short  = Title("Username is too short - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 length_check_text_user_long  = Title("Username is too long - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 length_check_text_pass_short = Title("Password is too short - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 length_check_text_pass_long  = Title("Password is too long - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
-#format check function for password
+# format check function for password
 def has_special_char(text):
     special_characters = string.punctuation
     return any(char in special_characters for char in text)
 format_check_text = Title("Password must contain a special character - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
-#format check for email
+# format check for email
 def email_format(text):
     if "@" not in text:
         return False
@@ -197,33 +203,46 @@ def email_format(text):
     local, domain = text.split("@")
     if not local or not domain:
         return False
+    elif domain[0] == "." or domain[-1] == ".":
+        return False
+    elif ".." in domain:
+        return False
     elif "." not in domain:
+        return False
+    tld = domain.split(".")[-1]
+    if len(tld) < 2:
         return False
     else:
         return True
+
+# format check error message (email)
 format_email_check_text = Title("Invalid email format - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
-#match check for password/confirm in register
+# match check for password/confirm in register
 def check_match(text1,text2):
     if text1 != text2:
         return False
     else:
         return True
+
+# match check error message (password)
 match_password_error_text = Title("Passwords do not match - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
-#lookup check function for login system
+# lookup check function for login system
 def check_User(text1,text2):
     with sqlite3.connect("credentials.db") as connect:
         cur = connect.cursor()
-        cur.execute("SELECT * FROM user_credentials WHERE username = ? AND password = ?",(text1,text2))
+        cur.execute("SELECT * FROM user_credentials WHERE username = ? AND password = ?",(text1,hash_input(text2)))
         result = cur.fetchone()
     if result:
         return True
     else:
         return False
+
+# lookup check error message (login page)
 lookup_check_text = Title("Credentials not found - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
-#lookup user check for registration
+# lookup user check for registration
 def lookup_user(text):
     with sqlite3.connect("credentials.db") as connect:
         cur = connect.cursor()
@@ -233,9 +252,11 @@ def lookup_user(text):
         return True
     else:
         return False
+
+# lookup check error message (username - registration)
 user_exists_text = Title("Username already exists - Please enter an alternative.",normal_font,"white",title_w//2, title_h * 0.95)
 
-#lookup email check for registration
+# lookup email check for registration
 def lookup_email(text):
     with sqlite3.connect("credentials.db") as connect:
         cur = connect.cursor()
@@ -245,103 +266,105 @@ def lookup_email(text):
         return True
     else:
         return False
+
+# lookup check error message (email - registration)
 email_exists_text = Title("Email already exists - Please enter an alternative.",normal_font,"white",title_w//2, title_h * 0.95)
+
+# lookup check error message (email - reset password)
 email_not_exists_text = Title("Email not found - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
-#code check for password reset
+# match check error message (code - email verification)
 match_code_error_text = Title("Code does not match - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
-#successful login/register message
-login_successful_text = Title("Login Successful!",normal_font,"white",title_w//2, title_h * 0.95)
-create_account_successful_text = Title("Account created successfully!",normal_font,"white",title_w//2, title_h * 0.95)
-reset_pass_successful_text = Title("Password reset successfully!",normal_font,"white",title_w//2, title_h * 0.95)
-
-#MAIN VALIDATION FUNCTION FOR LOGIN
+# MAIN VALIDATION FUNCTION FOR LOGIN
 def validate_login(username,password):
-    #presence check
+
+    # presence check validation
     if not presence_check(username) or not presence_check(password):
         return False, presence_check_text
 
-    #lookup check username
+    # username lookup validation
     if not check_User(username,password):
         return False, lookup_check_text
 
-    return True, login_successful_text
+    return True, None
 
-#MAIN VALIDATION FUNCTION FOR REGISTRATION
+# MAIN VALIDATION FUNCTION FOR REGISTRATION
 def validate_registration(username, email, password, conpassword):
-    #presence check
+
+    # presence check validation
     if not presence_check(username) or not presence_check(email) or not presence_check(password) or not presence_check(conpassword):
         return False, presence_check_text
 
-    #username length
+    # username length validation
     userlen = length_check_user(username)
     if userlen == 1:
         return False, length_check_text_user_short
     if userlen == 2:
         return False, length_check_text_user_long
 
-    #email format
+    # email format validation
     if not email_format(email):
         return False, format_email_check_text
 
-    #password length
+    # password length validation
     passlen = length_check_pass(password)
     if passlen == 1:
         return False, length_check_text_pass_short
     elif passlen == 2:
         return False, length_check_text_pass_long
 
-    #password special character
+    # special character validation
     if not has_special_char(password):
         return False, format_check_text
 
-    #matching passwords
+    # matching passwords validation
     if not check_match(password, conpassword):
         return False, match_password_error_text
 
-    #username exists
+    # username lookup validation
     if lookup_user(username):
         return False, user_exists_text
 
-    #email exists
+    # email lookup validation
     if lookup_email(email):
         return False, email_exists_text
 
     return True, None
 
-#MAIN VALIDATION FUNCTION FOR RESET PASSWORD
+# MAIN VALIDATION FUNCTION FOR RESET PASSWORD
 def validate_reset_password(email, password, conpassword):
-    #presence check
+
+    #presence check validation
     if not presence_check(email) or not presence_check(password) or not presence_check(conpassword):
         return False, presence_check_text
 
-    #email format
+    # email format validation
     if not email_format(email):
         return False, format_email_check_text
 
-    #lookup email
+    # email lookup validation
     if not lookup_email(email):
         return False, email_not_exists_text
 
-    #password length
+    # password length validation
     passlen = length_check_pass(password)
     if passlen == 1:
         return False, length_check_text_pass_short
     elif passlen == 2:
         return False, length_check_text_pass_long
 
-    #password special character
+    # special character validation
     if not has_special_char(password):
         return False, format_check_text
 
-    #matching passwords
+    # matching passwords validation
     if not check_match(password, conpassword):
         return False, match_password_error_text
 
     return True, None
 
-#VALIDATION FUNCTION FOR PASSWORD RESET:
+# VALIDATION FUNCTION FOR PASSWORD RESET:
 def validate_reset_pass_verify(code,sent_code):
     #presence check
     if not presence_check(code):
@@ -351,11 +374,11 @@ def validate_reset_pass_verify(code,sent_code):
 
     return True, None
 
-#generate code
+# code generation
 def generate_code():
     return random.randint(100000,999999)
 
-#verification email
+# FUNCTION TO SEND EMAIL FOR EMAIL VERIFICATION
 def send_email(email,code):
     sender = "cincoofficialgame@gmail.com"
     receiver = email
@@ -380,22 +403,28 @@ Subject: {subject}
     except Exception as e:
         print(e)
 
-#=============#
-#DRAWING PAGES#
-#=============#
+# hashing inputs
+def hash_input(text):
+    return hashlib.sha256(text.encode()).hexdigest()
 
-# Page Parent Class
+#===============#
+# DRAWING PAGES #
+#===============#
+
+# PAGE PARENT CLASS
 class Page:
+    # draw page
     def draw_page(self,surface):
         surface.blit(bg,(0,0))
 
+    # handle page events
     def handle_event(self,event):
         pass
 
-# Title Page Class
+# TITLE PAGE CLASS
 class TitlePage(Page):
     def __init__(self):
-        # title creation(main)
+        # main title creation
         self.title_main = Title("CINCO!", title_font, "white", title_w // 2, title_h * 0.3)
 
         # title page buttons
@@ -410,13 +439,17 @@ class TitlePage(Page):
 
     def handle_event(self,event):
         global current_page
+        # when login button is clicked
         if self.login_button.is_clicked(event):
             current_page = LoginPage()
+        # when register button is clicked
         if self.reg_button.is_clicked(event):
             current_page = RegisterPage()
+        # when exit button is clicked
         if self.exit_button.is_clicked(event):
             pygame.quit()
 
+    # draw login page
     def draw_page(self,surface):
         super().draw_page(surface)
         self.title_main.draw(surface)
@@ -424,12 +457,12 @@ class TitlePage(Page):
         self.reg_button.draw(surface)
         self.exit_button.draw(surface)
 
-# Login Page Class
+# LOGIN PAGE CLASS
 class LoginPage(Page):
     def __init__(self):
-        # login page title
-        self.login_username_input = InputBox(title_w * 0.4,title_h * 0.51,600,70,"#000000",input_font)
-        self.login_password_input = InputBox(title_w * 0.4,title_h * 0.61,600,70,"#000000",input_font)
+        # login page title + input boxes
+        self.login_username_input = InputBox(title_w * 0.4,title_h * 0.51,600,70,"#000000",input_font,16,hashing=False)
+        self.login_password_input = InputBox(title_w * 0.4,title_h * 0.61,600,70,"#000000",input_font,16,hashing=True)
         self.login_title = Title("LOGIN", title_font, "white", title_w // 2, title_h * 0.3)
 
         # login labels
@@ -439,34 +472,43 @@ class LoginPage(Page):
         # login page buttons
         self.login_page_button = Button(x=button_x * 0.6, y=button_y * 1.5, w=300, h=120, text="Login",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+
         self.forgot_password_button = Button(x=button_x * 1.3, y=button_y * 1.5, w=400, h=120, text="Forgot Password",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+
         self.back_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="BACK",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
 
     def handle_event(self,event):
         global current_page,current_error_message
+        #login user inputs - being displayed on screen
         self.login_username_input.do_event(event)
         self.login_password_input.do_event(event)
 
         # data validation for login
-        if self.login_page_button.is_clicked(event):
+        if self.login_page_button.is_clicked(event) or event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
             username = self.login_username_input.text.strip()
             password = self.login_password_input.text.strip()
             is_valid, message = validate_login(username, password)
 
-            # error message to print/success
+            # printing error message/redirecting user
             if not is_valid:
                 current_error_message = message
             else:
                 current_error_message = None
                 current_page = MenuPage()
 
+        # when forgot password button is clicked
         elif self.forgot_password_button.is_clicked(event):
             current_page = ResetPassPage()
+            current_error_message = None
+
+        # when back button is clicked
         elif self.back_button.is_clicked(event):
             current_page = TitlePage()
+            current_error_message = None
 
+    # draw login page
     def draw_page(self,surface):
         super().draw_page(surface)
         self.login_title.draw(surface)
@@ -478,7 +520,7 @@ class LoginPage(Page):
         self.forgot_password_button.draw(surface)
         self.back_button.draw(surface)
 
-# Register Page Class
+# REGISTER PAGE CLASS
 class RegisterPage(Page):
     def __init__(self):
         # register page title
@@ -486,30 +528,31 @@ class RegisterPage(Page):
 
         # register page labels and inputs
         self.reg_username_label = Title("Username:", normal_font, "white", title_w * 0.3, title_h * 0.4)
-        self.reg_username_input = InputBox(title_w * 0.4, title_h * 0.36, 600, 75, "#000000", input_font)
         self.reg_email_label = Title("Email Address:", normal_font, "white", title_w * 0.27, title_h * 0.5)
-        self.reg_email_input = InputBox(title_w * 0.4, title_h * 0.46, 600, 75, "#000000", input_font)
         self.reg_password_label = Title("Password:", normal_font, "white", title_w * 0.3, title_h * 0.6)
-        self.reg_password_input = InputBox(title_w * 0.4, title_h * 0.56, 600, 75, "#000000", input_font)
         self.reg_confirm_label = Title("Confirm Password:", normal_font, "white", title_w * 0.24, title_h * 0.7)
-        self.reg_confirm_input = InputBox(title_w * 0.4, title_h * 0.66, 600, 75, "#000000", input_font)
+        self.reg_username_input = InputBox(title_w * 0.4, title_h * 0.36, 600, 75, "#000000", input_font,16,hashing=False)
+        self.reg_email_input = InputBox(title_w * 0.4, title_h * 0.46, 600, 75, "#000000", input_font,40,hashing=False)
+        self.reg_password_input = InputBox(title_w * 0.4, title_h * 0.56, 600, 75, "#000000", input_font,16,hashing=True)
+        self.reg_confirm_input = InputBox(title_w * 0.4, title_h * 0.66, 600, 75, "#000000", input_font,16,hashing=True)
 
         # register page buttons
         self.create_account_button = Button(x=(title_w - 400) // 2, y=button_y * 1.55, w=400, h=120, text="Create Account",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000", border_width=5)
+
         self.back_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="BACK",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
 
     def handle_event(self,event):
         global current_page,current_error_message
-        # register input text
+        # register page inputs - being displayed on screen
         self.reg_username_input.do_event(event)
         self.reg_email_input.do_event(event)
         self.reg_password_input.do_event(event)
         self.reg_confirm_input.do_event(event)
 
         # register page validations
-        if self.create_account_button.is_clicked(event):
+        if self.create_account_button.is_clicked(event) or event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
             username = self.reg_username_input.text.strip()
             email = self.reg_email_input.text.strip()
             password = self.reg_password_input.text.strip()
@@ -517,16 +560,20 @@ class RegisterPage(Page):
 
             is_valid, message = validate_registration(username, email, password, conpassword)
 
-            # error message to print/success
+            # printing error message/redirecting user
             if not is_valid:
                 current_error_message = message
             else:
                 addUser(username,email,password)
                 current_error_message = None
                 current_page = LoginPage()
+
+        #when back button is clicked
         elif self.back_button.is_clicked(event):
             current_page = TitlePage()
+            current_error_message = None
 
+    # draw register page
     def draw_page(self,surface):
         super().draw_page(surface)
         self.register_title.draw(surface)
@@ -541,7 +588,7 @@ class RegisterPage(Page):
         self.create_account_button.draw(surface)
         self.back_button.draw(surface)
 
-# Reset Password Page
+# RESET PASSWORD PAGE
 class ResetPassPage(Page):
     def __init__(self):
         # reset page title
@@ -549,32 +596,35 @@ class ResetPassPage(Page):
 
         # reset page labels and inputs
         self.reset_email_label = Title("Email Address:", normal_font, "white", title_w * 0.27, title_h * 0.45)
-        self.reset_email_input = InputBox(title_w * 0.4, title_h * 0.41, 600, 75, "#000000", input_font)
         self.reset_password_label = Title("Password:", normal_font, "white", title_w * 0.3, title_h * 0.55)
-        self.reset_password_input = InputBox(title_w * 0.4, title_h * 0.51, 600, 75, "#000000", input_font)
         self.reset_confirm_label = Title("Confirm Password:", normal_font, "white", title_w * 0.24, title_h * 0.65)
-        self.reset_confirm_input = InputBox(title_w * 0.4, title_h * 0.61, 600, 75, "#000000", input_font)
+        self.reset_email_input = InputBox(title_w * 0.4, title_h * 0.41, 600, 75, "#000000", input_font,40,hashing=False)
+        self.reset_password_input = InputBox(title_w * 0.4, title_h * 0.51, 600, 75, "#000000", input_font,16,hashing=True)
+        self.reset_confirm_input = InputBox(title_w * 0.4, title_h * 0.61, 600, 75, "#000000", input_font,16,hashing=True)
 
         # reset page buttons
         self.reset_button = Button(x=(title_w - 400) // 2, y=button_y * 1.5, w=400, h=120, text="Reset Password",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
+
         self.back_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="BACK",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
 
     def handle_event(self,event):
         global current_page,current_error_message,current_email,current_password
-        # reset input text
+        # reset page inputs - being displayed on screen
         self.reset_email_input.do_event(event)
         self.reset_password_input.do_event(event)
         self.reset_confirm_input.do_event(event)
 
-        if self.reset_button.is_clicked(event):
+        # reset password page validations
+        if self.reset_button.is_clicked(event) or event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
             email = self.reset_email_input.text.strip()
             password = self.reset_password_input.text.strip()
             conpassword = self.reset_confirm_input.text.strip()
 
             is_valid, message = validate_reset_password(email, password, conpassword)
 
+            # printing error message/redirecting user
             if not is_valid:
                 current_error_message = message
             else:
@@ -582,11 +632,14 @@ class ResetPassPage(Page):
                 current_error_message = None
                 current_email = email
                 current_page = EmailVeriPage()
+
+        #when back button is clicked
         elif self.back_button.is_clicked(event):
             current_page = LoginPage()
+            current_error_message = None
 
+    # draw reset password page
     def draw_page(self,surface):
-        # drawing reset password page screen/labels/buttons
         super().draw_page(surface)
         self.reset_title.draw(surface)
         self.reset_email_label.draw(surface)
@@ -598,19 +651,19 @@ class ResetPassPage(Page):
         self.reset_button.draw(surface)
         self.back_button.draw(surface)
 
-# Email Verification Page (To reset password)
+# EMAIL VERIFICATION PAGE (to reset password)
 class EmailVeriPage(Page):
     def __init__(self):
         # email verification page title
         self.email_veri_page_title = Title("EMAIL VERIFICATION", title_font, "white", title_w // 2, title_h * 0.15)
 
-        # email verification page label and input
+        # email verification page label + input
         self.code_sent_message = """
 Please click the send code button below to send a code 
 to your email address. Enter the code in the text box 
 below to verify your password:
         """
-        self.code_input = InputBox(title_w * 0.4, title_h * 0.6, 300, 75, "#000000", input_font)
+        self.code_input = InputBox(title_w * 0.4, title_h * 0.6, 300, 75, "#000000", input_font,6,hashing=True)
 
         # email verification page buttons
         self.send_code_button = Button(x=button_x * 0.6, y=button_y * 1.5, w=400, h=120, text="Send Code",
@@ -618,20 +671,26 @@ below to verify your password:
 
         self.verify_reset_button = Button(x=button_x * 1.3, y=button_y * 1.5, w=500, h=120, text="Verify Password Reset",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+
         self.back_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="BACK",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
 
     def handle_event(self,event):
         global current_page,current_error_message,current_code_sent
+        # email verification page inputs - being displayed on screen
         self.code_input.do_event(event)
 
+        # when send code button is clicked
         if self.send_code_button.is_clicked(event):
             current_code_sent = str(generate_code())
             send_email(current_email,current_code_sent)
+            current_error_message = None
 
-        elif self.verify_reset_button.is_clicked(event):
+        # email verification page validations
+        elif self.verify_reset_button.is_clicked(event) or event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
             code = self.code_input.text.strip()
 
+            # printing error message/redirecting user
             is_valid, message = validate_reset_pass_verify(code,current_code_sent)
 
             if not is_valid:
@@ -641,11 +700,14 @@ below to verify your password:
                 changePassword(current_email,current_password)
                 current_error_message = None
                 current_page = LoginPage()
+
+        # when back button is clicked
         elif self.back_button.is_clicked(event):
             current_page = ResetPassPage()
+            current_error_message = None
 
+    # drawing email verification page
     def draw_page(self,surface):
-        # drawing verify email page labels/buttons/input
         super().draw_page(surface)
         self.email_veri_page_title.draw(surface)
         render_multi_lines(surface, self.code_sent_message, 100, title_h * 0.15, normal_font, "#FFFFFF")
@@ -676,11 +738,16 @@ class MenuPage(Page):
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
 
     def handle_event(self,event):
-        if self.exit_button.is_clicked(event):
+        global current_page
+        # when leaderboard button is clicked
+        if self.menu_leaderboard_button.is_clicked(event):
+            current_page = LeaderboardPage()
+        # when exit button is clicked
+        elif self.exit_button.is_clicked(event):
             pygame.quit()
 
+    # draw menu page
     def draw_page(self,surface):
-        # drawing menu page screen/labels/buttons
         super().draw_page(surface)
         self.menu_title.draw(surface)
         self.menu_play_button.draw(surface)
@@ -688,6 +755,26 @@ class MenuPage(Page):
         self.menu_rules_button.draw(surface)
         self.menu_settings_button.draw(surface)
         self.exit_button.draw(surface)
+
+class LeaderboardPage(Page):
+    def __init__(self):
+        # leaderboard page title
+        self.leaderboard_title = Title("LEADERBOARD",title_font,"white", title_w // 2, title_h * 0.15)
+
+        # leaderboard page buttons
+        self.back_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="BACK",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+
+    def handle_event(self,event):
+        global current_page
+        # when back button is clicked
+        if self.back_button.is_clicked(event):
+            current_page = MenuPage()
+    # drawing leaderboard page
+    def draw_page(self,surface):
+        super().draw_page(surface)
+        self.leaderboard_title.draw(surface)
+        self.back_button.draw(surface)
 
 #==========#
 # GAMELOOP #
