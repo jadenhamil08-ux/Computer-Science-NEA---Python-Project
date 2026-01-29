@@ -50,16 +50,24 @@ class Button:
         self.hover_colour = hover_colour
         self.border_colour = border_colour
         self.border_width = border_width
+        self.active = True
+
     def draw(self, surface):
-        mouse_pos = pygame.mouse.get_pos()
-        if self.rect.collidepoint(mouse_pos):
-            pygame.draw.rect(surface,self.hover_colour,self.rect)
+        if not self.active:
+            pygame.draw.rect(surface,"#444444",self.rect)
         else:
-            pygame.draw.rect(surface,self.colour,self.rect)
+            mouse_pos = pygame.mouse.get_pos()
+            if self.rect.collidepoint(mouse_pos):
+                pygame.draw.rect(surface, self.hover_colour, self.rect)
+            else:
+                pygame.draw.rect(surface, self.colour, self.rect)
         surface.blit(self.text, self.text_rect)
-        pygame.draw.rect(surface,self.border_colour,self.rect,width=self.border_width)
+        pygame.draw.rect(surface, self.border_colour, self.rect, width=self.border_width)
 
     def is_clicked(self, event):
+        if not self.active:
+            return False
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if event.button == 1:
                 if self.rect.collidepoint(event.pos):
@@ -276,6 +284,9 @@ email_not_exists_text = Title("Email not found - Please try again.",normal_font,
 # presence check error message (email - verification)
 email_presence_check_text = Title("Email not entered - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
+# presence check error message (code - verification)
+code_presence_check_text = Title("Code not entered - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+
 # match check error message (code - verification)
 match_code_error_text = Title("Code does not match - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
@@ -342,19 +353,11 @@ def validate_registration(username, email, password, conpassword):
     return True, None
 
 # MAIN VALIDATION FUNCTION FOR RESET PASSWORD
-def validate_reset_password(email, password, conpassword):
+def validate_reset_password(password, conpassword):
 
     #presence check validation
-    if not presence_check(email) or not presence_check(password) or not presence_check(conpassword):
+    if not presence_check(password) or not presence_check(conpassword):
         return False, presence_check_text
-
-    # email format validation
-    if not email_format(email):
-        return False, format_email_check_text
-
-    # email lookup validation
-    if not lookup_email(email):
-        return False, email_not_exists_text
 
     # password length validation
     passlen = length_check_pass(password)
@@ -373,28 +376,7 @@ def validate_reset_password(email, password, conpassword):
 
     return True, None
 
-# VALIDATION FUNCTION FOR PASSWORD RESET:
-def validate_email(email):
-    if not presence_check(email):
-        return False,
-    if not email_format(email):
-        return False, format_email_check_text
-    if not lookup_email(email):
-        return False, email_not_exists_text
-
-    return True, email_sent_text
-
 # VALIDATION FUNCTIONS FOR EMAIL VERIFICATION
-def validate_reset_pass_verify(code,sent_code):
-    # presence check
-    if not presence_check(code):
-        return False, presence_check_text
-    # code match check
-    if not check_match(code,sent_code):
-        return False, match_code_error_text
-
-    return True, None
-
 def validate_verification_email(email):
     # presence check
     if not presence_check(email):
@@ -407,6 +389,17 @@ def validate_verification_email(email):
         return False, email_not_exists_text
 
     return True, email_sent_text
+
+def validate_verification_code(code,sent_code):
+    # presence check
+    if not presence_check(code):
+        return False, code_presence_check_text
+    # code match check
+    if not check_match(code,sent_code):
+        return False, match_code_error_text
+
+    return True, None
+
 
 # code generation
 def generate_code():
@@ -534,7 +527,7 @@ class LoginPage(Page):
 
         # when forgot password button is clicked
         elif self.forgot_password_button.is_clicked(event):
-            current_page = ResetPassPage()
+            current_page = EmailVeriPage()
             current_error_message = None
 
         # when back button is clicked
@@ -629,10 +622,8 @@ class ResetPassPage(Page):
         self.reset_title = Title("RESET PASSWORD", title_font, "white", title_w // 2, title_h * 0.3)
 
         # reset page labels and inputs
-        self.reset_email_label = Title("Email Address:", normal_font, "white", title_w * 0.27, title_h * 0.45)
         self.reset_password_label = Title("Password:", normal_font, "white", title_w * 0.3, title_h * 0.55)
         self.reset_confirm_label = Title("Confirm Password:", normal_font, "white", title_w * 0.24, title_h * 0.65)
-        self.reset_email_input = InputBox(title_w * 0.4, title_h * 0.41, 600, 75, "#000000", input_font,40,hashing=False)
         self.reset_password_input = InputBox(title_w * 0.4, title_h * 0.51, 600, 75, "#000000", input_font,16,hashing=True)
         self.reset_confirm_input = InputBox(title_w * 0.4, title_h * 0.61, 600, 75, "#000000", input_font,16,hashing=True)
 
@@ -644,40 +635,36 @@ class ResetPassPage(Page):
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
 
     def handle_event(self,event):
-        global current_page,current_error_message,current_email,current_password
+        global current_page,current_error_message,current_email
         # reset page inputs - being displayed on screen
-        self.reset_email_input.do_event(event)
         self.reset_password_input.do_event(event)
         self.reset_confirm_input.do_event(event)
 
         # reset password page validations
         if self.reset_button.is_clicked(event) or event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-            email = self.reset_email_input.text.strip()
             password = self.reset_password_input.text.strip()
             conpassword = self.reset_confirm_input.text.strip()
 
-            is_valid, message = validate_reset_password(email, password, conpassword)
+            is_valid, message = validate_reset_password(password, conpassword)
 
             # printing error message/redirecting user
             if not is_valid:
                 current_error_message = message
             else:
-                current_password = password
+                changePassword(current_email,password)
+                current_email = None
                 current_error_message = None
-                current_email = email
-                current_page = EmailVeriPage()
+                current_page = LoginPage()
 
         #when back button is clicked
         elif self.back_button.is_clicked(event):
-            current_page = LoginPage()
+            current_page = EmailVeriPage()
             current_error_message = None
 
     # draw reset password page
     def draw_page(self,surface):
         super().draw_page(surface)
         self.reset_title.draw(surface)
-        self.reset_email_label.draw(surface)
-        self.reset_email_input.draw(surface)
         self.reset_password_label.draw(surface)
         self.reset_password_input.draw(surface)
         self.reset_confirm_label.draw(surface)
@@ -718,6 +705,11 @@ code to proceed with resetting your password.
         self.code_input.do_event(event)
         self.email_veri_input.do_event(event)
 
+        if current_code_sent is None:
+            self.verify_reset_button.active = False
+        else:
+            self.verify_reset_button.active = True
+
         # when send code button is clicked
         if self.send_code_button.is_clicked(event):
             email_to_send = self.email_veri_input.text.strip()
@@ -739,26 +731,29 @@ code to proceed with resetting your password.
               current_error_message = email_sent_text
               current_email = email_to_send
 
-
-
         # email verification page validations
-        elif self.verify_reset_button.is_clicked(event) or event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
-            code = self.code_input.text.strip()
+        elif self.verify_reset_button.is_clicked(event) or (self.verify_reset_button.active and event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN):
 
             # printing error message/redirecting user
-            is_valid, message = validate_reset_pass_verify(code,current_code_sent)
+            if current_code_sent is None and current_email is None:
+                current_error_message = email_before_code_text
+                return
+
+            code = self.code_input.text.strip()
+
+            is_valid, message = validate_verification_code(code,current_code_sent)
 
             if not is_valid:
                 current_error_message = message
 
             else:
-                changePassword(current_email,current_password)
                 current_error_message = None
+                current_code_sent = None
                 current_page = ResetPassPage()
 
         # when back button is clicked
         elif self.back_button.is_clicked(event):
-            current_page = ResetPassPage()
+            current_page = LoginPage()
             current_error_message = None
 
     # drawing email verification page
@@ -840,9 +835,8 @@ class LeaderboardPage(Page):
 
 runtime = True
 current_page = TitlePage()
-current_email = " "
-current_password = " "
-current_code_sent = " "
+current_email = None
+current_code_sent = None
 current_error_message = None
 
 while runtime:
@@ -853,5 +847,4 @@ while runtime:
    if current_error_message:
        current_error_message.draw(screen)
    pygame.display.flip()
-
 
