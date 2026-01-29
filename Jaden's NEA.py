@@ -839,7 +839,7 @@ class LeaderboardPage(Page):
 #==========#
 
 runtime = True
-current_page = EmailVeriPage()
+current_page = TitlePage()
 current_email = " "
 current_password = " "
 current_code_sent = " "
@@ -853,4 +853,5 @@ while runtime:
    if current_error_message:
        current_error_message.draw(screen)
    pygame.display.flip()
+
 
