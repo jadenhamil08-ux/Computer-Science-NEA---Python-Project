@@ -270,11 +270,20 @@ def lookup_email(text):
 # lookup check error message (email - registration)
 email_exists_text = Title("Email already exists - Please enter an alternative.",normal_font,"white",title_w//2, title_h * 0.95)
 
-# lookup check error message (email - reset password)
+# lookup check error message (email - reset password + verification)
 email_not_exists_text = Title("Email not found - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
 
-# match check error message (code - email verification)
+# presence check error message (email - verification)
+email_presence_check_text = Title("Email not entered - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+
+# match check error message (code - verification)
 match_code_error_text = Title("Code does not match - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+
+# email sent successfully message
+email_sent_text = Title("Email sent successfully! Check your inbox!",normal_font,"white",title_w//2, title_h * 0.95)
+
+# precondition for email verification
+email_before_code_text = Title("No code has been sent yet. Please only input your email address.",input_font,"white",title_w//2, title_h * 0.95)
 
 # MAIN VALIDATION FUNCTION FOR LOGIN
 def validate_login(username,password):
@@ -365,14 +374,39 @@ def validate_reset_password(email, password, conpassword):
     return True, None
 
 # VALIDATION FUNCTION FOR PASSWORD RESET:
+def validate_email(email):
+    if not presence_check(email):
+        return False,
+    if not email_format(email):
+        return False, format_email_check_text
+    if not lookup_email(email):
+        return False, email_not_exists_text
+
+    return True, email_sent_text
+
+# VALIDATION FUNCTIONS FOR EMAIL VERIFICATION
 def validate_reset_pass_verify(code,sent_code):
-    #presence check
+    # presence check
     if not presence_check(code):
         return False, presence_check_text
+    # code match check
     if not check_match(code,sent_code):
         return False, match_code_error_text
 
     return True, None
+
+def validate_verification_email(email):
+    # presence check
+    if not presence_check(email):
+        return False, email_presence_check_text
+    # email format check
+    if not email_format(email):
+        return False, format_email_check_text
+    # lookup check
+    if not lookup_email(email):
+        return False, email_not_exists_text
+
+    return True, email_sent_text
 
 # code generation
 def generate_code():
@@ -532,7 +566,7 @@ class RegisterPage(Page):
         self.reg_password_label = Title("Password:", normal_font, "white", title_w * 0.3, title_h * 0.6)
         self.reg_confirm_label = Title("Confirm Password:", normal_font, "white", title_w * 0.24, title_h * 0.7)
         self.reg_username_input = InputBox(title_w * 0.4, title_h * 0.36, 600, 75, "#000000", input_font,16,hashing=False)
-        self.reg_email_input = InputBox(title_w * 0.4, title_h * 0.46, 600, 75, "#000000", input_font,40,hashing=False)
+        self.reg_email_input = InputBox(title_w * 0.4, title_h * 0.46, 600, 75, "#000000", input_font,26,hashing=False)
         self.reg_password_input = InputBox(title_w * 0.4, title_h * 0.56, 600, 75, "#000000", input_font,16,hashing=True)
         self.reg_confirm_input = InputBox(title_w * 0.4, title_h * 0.66, 600, 75, "#000000", input_font,16,hashing=True)
 
@@ -659,32 +693,53 @@ class EmailVeriPage(Page):
 
         # email verification page label + input
         self.code_sent_message = """
-Please click the send code button below to send a code 
-to your email address. Enter the code in the text box 
-below to verify your password:
+Please enter your registered email address below. A 
+verification code will be sent to this email. Enter the 
+code to proceed with resetting your password.
         """
-        self.code_input = InputBox(title_w * 0.4, title_h * 0.6, 300, 75, "#000000", input_font,6,hashing=True)
+        self.email_veri_input = InputBox(title_w * 0.4, title_h * 0.55, 600, 75, "#000000", input_font,26,hashing=False)
+        self.code_input = InputBox(title_w * 0.4, title_h * 0.65, 300, 75, "#000000", input_font,6,hashing=True)
+        self.email_veri_label = Title("Email Address:", normal_font, "white", title_w * 0.27, title_h * 0.6)
+        self.code_label = Title("Code:", normal_font, "white", title_w * 0.34, title_h * 0.7)
 
         # email verification page buttons
-        self.send_code_button = Button(x=button_x * 0.6, y=button_y * 1.5, w=400, h=120, text="Send Code",
+        self.send_code_button = Button(x=button_x * 0.6, y=button_y * 1.55, w=400, h=120, text="Send Code",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
 
-        self.verify_reset_button = Button(x=button_x * 1.3, y=button_y * 1.5, w=500, h=120, text="Verify Password Reset",
+        self.verify_reset_button = Button(x=button_x * 1.3, y=button_y * 1.55, w=500, h=120, text="Verify Password Reset",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
 
         self.back_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="BACK",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
 
     def handle_event(self,event):
-        global current_page,current_error_message,current_code_sent
+        global current_page,current_error_message,current_code_sent,current_email
         # email verification page inputs - being displayed on screen
         self.code_input.do_event(event)
+        self.email_veri_input.do_event(event)
 
         # when send code button is clicked
         if self.send_code_button.is_clicked(event):
-            current_code_sent = str(generate_code())
-            send_email(current_email,current_code_sent)
-            current_error_message = None
+            email_to_send = self.email_veri_input.text.strip()
+            code = self.code_input.text.strip()
+
+            #printing error messages
+            if code:
+                current_error_message = email_before_code_text
+                return
+
+            is_valid, message = validate_verification_email(email_to_send)
+
+            if not is_valid:
+                current_error_message = message
+
+            else:
+              current_code_sent = str(generate_code())
+              send_email(email_to_send,current_code_sent)
+              current_error_message = email_sent_text
+              current_email = email_to_send
+
+
 
         # email verification page validations
         elif self.verify_reset_button.is_clicked(event) or event.type == pygame.KEYDOWN and event.key == pygame.K_RETURN:
@@ -699,7 +754,7 @@ below to verify your password:
             else:
                 changePassword(current_email,current_password)
                 current_error_message = None
-                current_page = LoginPage()
+                current_page = ResetPassPage()
 
         # when back button is clicked
         elif self.back_button.is_clicked(event):
@@ -710,8 +765,11 @@ below to verify your password:
     def draw_page(self,surface):
         super().draw_page(surface)
         self.email_veri_page_title.draw(surface)
-        render_multi_lines(surface, self.code_sent_message, 100, title_h * 0.15, normal_font, "#FFFFFF")
+        render_multi_lines(surface, self.code_sent_message, 100, title_h * 0.1, normal_font, "#FFFFFF")
         self.code_input.draw(surface)
+        self.email_veri_input.draw(surface)
+        self.email_veri_label.draw(surface)
+        self.code_label.draw(surface)
         self.send_code_button.draw(surface)
         self.verify_reset_button.draw(surface)
         self.back_button.draw(surface)
@@ -781,7 +839,7 @@ class LeaderboardPage(Page):
 #==========#
 
 runtime = True
-current_page = TitlePage()
+current_page = EmailVeriPage()
 current_email = " "
 current_password = " "
 current_code_sent = " "
