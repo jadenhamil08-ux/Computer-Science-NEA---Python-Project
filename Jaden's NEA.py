@@ -16,11 +16,11 @@ info = pygame.display.Info()
 screen = pygame.display.set_mode((info.current_w,info.current_h), pygame.FULLSCREEN | pygame.SCALED)
 
 # get screen size
-title_w, title_h = screen.get_size()
+screen_w, screen_h = screen.get_size()
 
 # load original image / scale page
 bg = pygame.image.load("Frontpage.png").convert()
-bg = pygame.transform.smoothscale(bg, (title_w, title_h))
+bg = pygame.transform.smoothscale(bg, (screen_w, screen_h))
 
 # title class
 class Title:
@@ -82,8 +82,8 @@ def render_multi_lines(surface,text,x,y,font,colour):
         surface.blit(font.render(line,True,colour),(x,y + (index * line_height)))
 
 # button font and position (when width == 300)
-button_x = title_w // 2 - 150
-button_y = title_h // 2
+button_x = screen_w // 2 - 150
+button_y = screen_h // 2
 button_font = pygame.font.Font("Jomhuria-Regular.ttf", 80)
 
 # INPUT BOX CLASS
@@ -133,6 +133,26 @@ class InputBox:
         surface.blit(textsurface,(self.rect.x+5,self.rect.y))
         pygame.draw.rect(surface, self.border_colour, self.rect, width=self.border_width)
 
+# TOGGLE SLIDER CLASS (for boolean values)
+class Toggle:
+    def __init__(self,x,y,w,h,border_colour,border_width,value=False):
+        self.rect = pygame.Rect(x,y,w,h)
+        self.border_colour = border_colour
+        self.border_width = border_width
+        self.value = value
+
+    def handle_event(self,event):
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if self.rect.collidepoint(event.pos):
+                self.value = not self.value
+
+    def draw(self,surface):
+        pygame.draw.rect(surface,"#FFFFFF",self.rect)
+        knob_x = self.rect.x + (self.rect.width // 2 if self.value else 0)
+        knob_rect = pygame.Rect(knob_x, self.rect.y, self.rect.w // 2, self.rect.h)
+        pygame.draw.rect(surface,"#FB3F3F",knob_rect)
+        pygame.draw.rect(surface, self.border_colour, self.rect, width=self.border_width)
+
 #===================#
 # CREATING DATABASE #
 #===================#
@@ -172,7 +192,7 @@ def presence_check(text):
     return text.strip() != ""
 
 # presence check error message
-presence_check_text = Title("Not all fields are filled in - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+presence_check_text = Title("Not all fields are filled in - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # length check function for login system username
 def length_check_user(text):
@@ -191,16 +211,16 @@ def length_check_pass(text):
     return None
 
 # length check error messages
-length_check_text_user_short  = Title("Username is too short - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
-length_check_text_user_long  = Title("Username is too long - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
-length_check_text_pass_short = Title("Password is too short - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
-length_check_text_pass_long  = Title("Password is too long - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+length_check_text_user_short  = Title("Username is too short - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
+length_check_text_user_long  = Title("Username is too long - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
+length_check_text_pass_short = Title("Password is too short - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
+length_check_text_pass_long  = Title("Password is too long - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # format check function for password
 def has_special_char(text):
     special_characters = string.punctuation
     return any(char in special_characters for char in text)
-format_check_text = Title("Password must contain a special character - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+format_check_text = Title("Password must contain a special character - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # format check for email
 def email_format(text):
@@ -224,7 +244,7 @@ def email_format(text):
         return True
 
 # format check error message (email)
-format_email_check_text = Title("Invalid email format - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+format_email_check_text = Title("Invalid email format - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # match check for password/confirm in register
 def check_match(text1,text2):
@@ -234,7 +254,7 @@ def check_match(text1,text2):
         return True
 
 # match check error message (password)
-match_password_error_text = Title("Passwords do not match - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+match_password_error_text = Title("Passwords do not match - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # lookup check function for login system
 def check_User(text1,text2):
@@ -248,7 +268,7 @@ def check_User(text1,text2):
         return False
 
 # lookup check error message (login page)
-lookup_check_text = Title("Credentials not found - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+lookup_check_text = Title("Credentials not found - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # lookup user check for registration
 def lookup_user(text):
@@ -262,7 +282,7 @@ def lookup_user(text):
         return False
 
 # lookup check error message (username - registration)
-user_exists_text = Title("Username already exists - Please enter an alternative.",normal_font,"white",title_w//2, title_h * 0.95)
+user_exists_text = Title("Username already exists - Please enter an alternative.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # lookup email check for registration
 def lookup_email(text):
@@ -276,25 +296,25 @@ def lookup_email(text):
         return False
 
 # lookup check error message (email - registration)
-email_exists_text = Title("Email already exists - Please enter an alternative.",normal_font,"white",title_w//2, title_h * 0.95)
+email_exists_text = Title("Email already exists - Please enter an alternative.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # lookup check error message (email - reset password + verification)
-email_not_exists_text = Title("Email not found - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+email_not_exists_text = Title("Email not found - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # presence check error message (email - verification)
-email_presence_check_text = Title("Email not entered - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+email_presence_check_text = Title("Email not entered - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # presence check error message (code - verification)
-code_presence_check_text = Title("Code not entered - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+code_presence_check_text = Title("Code not entered - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # match check error message (code - verification)
-match_code_error_text = Title("Code does not match - Please try again.",normal_font,"white",title_w//2, title_h * 0.95)
+match_code_error_text = Title("Code does not match - Please try again.", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # email sent successfully message
-email_sent_text = Title("Email sent successfully! Check your inbox!",normal_font,"white",title_w//2, title_h * 0.95)
+email_sent_text = Title("Email sent successfully! Check your inbox!", normal_font,"white", screen_w // 2, screen_h * 0.95)
 
 # precondition for email verification
-email_before_code_text = Title("No code has been sent yet. Please only input your email address.",input_font,"white",title_w//2, title_h * 0.95)
+email_before_code_text = Title("No code has been sent yet. Please only input your email address.", input_font,"white", screen_w // 2, screen_h * 0.95)
 
 # MAIN VALIDATION FUNCTION FOR LOGIN
 def validate_login(username,password):
@@ -452,7 +472,7 @@ class Page:
 class TitlePage(Page):
     def __init__(self):
         # main title creation
-        self.title_main = Title("CINCO!", title_font, "white", title_w // 2, title_h * 0.3)
+        self.title_main = Title("CINCO!", title_font, "white", screen_w // 2, screen_h * 0.3)
 
         # title page buttons
         self.login_button = Button(x=button_x, y=button_y, w=300, h=120, text="LOGIN",
@@ -488,13 +508,13 @@ class TitlePage(Page):
 class LoginPage(Page):
     def __init__(self):
         # login page title + input boxes
-        self.login_username_input = InputBox(title_w * 0.4,title_h * 0.51,600,70,"#000000",input_font,16,hashing=False)
-        self.login_password_input = InputBox(title_w * 0.4,title_h * 0.61,600,70,"#000000",input_font,16,hashing=True)
-        self.login_title = Title("LOGIN", title_font, "white", title_w // 2, title_h * 0.3)
+        self.login_username_input = InputBox(screen_w * 0.4, screen_h * 0.51, 600, 70, "#000000", input_font, 16, hashing=False)
+        self.login_password_input = InputBox(screen_w * 0.4, screen_h * 0.61, 600, 70, "#000000", input_font, 16, hashing=True)
+        self.login_title = Title("LOGIN", title_font, "white", screen_w // 2, screen_h * 0.3)
 
         # login labels
-        self.login_username_label = Title("Username:", normal_font, "white", title_w * 0.3, title_h * 0.55)
-        self.login_password_label = Title("Password:", normal_font, "white", title_w * 0.3, title_h * 0.65)
+        self.login_username_label = Title("Username:", normal_font, "white", screen_w * 0.3, screen_h * 0.55)
+        self.login_password_label = Title("Password:", normal_font, "white", screen_w * 0.3, screen_h * 0.65)
 
         # login page buttons
         self.login_page_button = Button(x=button_x * 0.6, y=button_y * 1.5, w=300, h=120, text="Login",
@@ -551,21 +571,21 @@ class LoginPage(Page):
 class RegisterPage(Page):
     def __init__(self):
         # register page title
-        self.register_title = Title("REGISTER", title_font, "white", title_w // 2, title_h * 0.25)
+        self.register_title = Title("REGISTER", title_font, "white", screen_w // 2, screen_h * 0.25)
 
         # register page labels and inputs
-        self.reg_username_label = Title("Username:", normal_font, "white", title_w * 0.3, title_h * 0.4)
-        self.reg_email_label = Title("Email Address:", normal_font, "white", title_w * 0.27, title_h * 0.5)
-        self.reg_password_label = Title("Password:", normal_font, "white", title_w * 0.3, title_h * 0.6)
-        self.reg_confirm_label = Title("Confirm Password:", normal_font, "white", title_w * 0.24, title_h * 0.7)
-        self.reg_username_input = InputBox(title_w * 0.4, title_h * 0.36, 600, 75, "#000000", input_font,16,hashing=False)
-        self.reg_email_input = InputBox(title_w * 0.4, title_h * 0.46, 600, 75, "#000000", input_font,26,hashing=False)
-        self.reg_password_input = InputBox(title_w * 0.4, title_h * 0.56, 600, 75, "#000000", input_font,16,hashing=True)
-        self.reg_confirm_input = InputBox(title_w * 0.4, title_h * 0.66, 600, 75, "#000000", input_font,16,hashing=True)
+        self.reg_username_label = Title("Username:", normal_font, "white", screen_w * 0.3, screen_h * 0.4)
+        self.reg_email_label = Title("Email Address:", normal_font, "white", screen_w * 0.27, screen_h * 0.5)
+        self.reg_password_label = Title("Password:", normal_font, "white", screen_w * 0.3, screen_h * 0.6)
+        self.reg_confirm_label = Title("Confirm Password:", normal_font, "white", screen_w * 0.24, screen_h * 0.7)
+        self.reg_username_input = InputBox(screen_w * 0.4, screen_h * 0.36, 600, 75, "#000000", input_font, 16, hashing=False)
+        self.reg_email_input = InputBox(screen_w * 0.4, screen_h * 0.46, 600, 75, "#000000", input_font, 26, hashing=False)
+        self.reg_password_input = InputBox(screen_w * 0.4, screen_h * 0.56, 600, 75, "#000000", input_font, 16, hashing=True)
+        self.reg_confirm_input = InputBox(screen_w * 0.4, screen_h * 0.66, 600, 75, "#000000", input_font, 16, hashing=True)
 
         # register page buttons
-        self.create_account_button = Button(x=(title_w - 400) // 2, y=button_y * 1.55, w=400, h=120, text="Create Account",
-            font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000", border_width=5)
+        self.create_account_button = Button(x=(screen_w - 400) // 2, y=button_y * 1.55, w=400, h=120, text="Create Account",
+                                            font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000", border_width=5)
 
         self.back_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="BACK",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
@@ -619,17 +639,17 @@ class RegisterPage(Page):
 class ResetPassPage(Page):
     def __init__(self):
         # reset page title
-        self.reset_title = Title("RESET PASSWORD", title_font, "white", title_w // 2, title_h * 0.3)
+        self.reset_title = Title("RESET PASSWORD", title_font, "white", screen_w // 2, screen_h * 0.3)
 
         # reset page labels and inputs
-        self.reset_password_label = Title("Password:", normal_font, "white", title_w * 0.3, title_h * 0.55)
-        self.reset_confirm_label = Title("Confirm Password:", normal_font, "white", title_w * 0.24, title_h * 0.65)
-        self.reset_password_input = InputBox(title_w * 0.4, title_h * 0.51, 600, 75, "#000000", input_font,16,hashing=True)
-        self.reset_confirm_input = InputBox(title_w * 0.4, title_h * 0.61, 600, 75, "#000000", input_font,16,hashing=True)
+        self.reset_password_label = Title("Password:", normal_font, "white", screen_w * 0.3, screen_h * 0.55)
+        self.reset_confirm_label = Title("Confirm Password:", normal_font, "white", screen_w * 0.24, screen_h * 0.65)
+        self.reset_password_input = InputBox(screen_w * 0.4, screen_h * 0.51, 600, 75, "#000000", input_font, 16, hashing=True)
+        self.reset_confirm_input = InputBox(screen_w * 0.4, screen_h * 0.61, 600, 75, "#000000", input_font, 16, hashing=True)
 
         # reset page buttons
-        self.reset_button = Button(x=(title_w - 400) // 2, y=button_y * 1.5, w=400, h=120, text="Reset Password",
-            font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
+        self.reset_button = Button(x=(screen_w - 400) // 2, y=button_y * 1.5, w=400, h=120, text="Reset Password",
+                                   font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000", border_width=5)
 
         self.back_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="BACK",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
@@ -676,7 +696,7 @@ class ResetPassPage(Page):
 class EmailVeriPage(Page):
     def __init__(self):
         # email verification page title
-        self.email_veri_page_title = Title("EMAIL VERIFICATION", title_font, "white", title_w // 2, title_h * 0.15)
+        self.email_veri_page_title = Title("EMAIL VERIFICATION", title_font, "white", screen_w // 2, screen_h * 0.15)
 
         # email verification page label + input
         self.code_sent_message = """
@@ -684,10 +704,10 @@ Please enter your registered email address below. A
 verification code will be sent to this email. Enter the 
 code to proceed with resetting your password.
         """
-        self.email_veri_input = InputBox(title_w * 0.4, title_h * 0.55, 600, 75, "#000000", input_font,26,hashing=False)
-        self.code_input = InputBox(title_w * 0.4, title_h * 0.65, 300, 75, "#000000", input_font,6,hashing=True)
-        self.email_veri_label = Title("Email Address:", normal_font, "white", title_w * 0.27, title_h * 0.6)
-        self.code_label = Title("Code:", normal_font, "white", title_w * 0.34, title_h * 0.7)
+        self.email_veri_input = InputBox(screen_w * 0.4, screen_h * 0.55, 600, 75, "#000000", input_font, 26, hashing=False)
+        self.code_input = InputBox(screen_w * 0.4, screen_h * 0.65, 300, 75, "#000000", input_font, 6, hashing=True)
+        self.email_veri_label = Title("Email Address:", normal_font, "white", screen_w * 0.27, screen_h * 0.6)
+        self.code_label = Title("Code:", normal_font, "white", screen_w * 0.34, screen_h * 0.7)
 
         # email verification page buttons
         self.send_code_button = Button(x=button_x * 0.6, y=button_y * 1.55, w=400, h=120, text="Send Code",
@@ -760,7 +780,7 @@ code to proceed with resetting your password.
     def draw_page(self,surface):
         super().draw_page(surface)
         self.email_veri_page_title.draw(surface)
-        render_multi_lines(surface, self.code_sent_message, 100, title_h * 0.1, normal_font, "#FFFFFF")
+        render_multi_lines(surface, self.code_sent_message, 100, screen_h * 0.1, normal_font, "#FFFFFF")
         self.code_input.draw(surface)
         self.email_veri_input.draw(surface)
         self.email_veri_label.draw(surface)
@@ -772,29 +792,30 @@ code to proceed with resetting your password.
 class MenuPage(Page):
     def __init__(self):
         # menu page title
-        self.menu_title = Title("MAIN MENU", title_font, "white", title_w // 2, title_h * 0.2)
+        self.menu_title = Title("MAIN MENU", title_font, "white", screen_w // 2, screen_h * 0.2)
 
         # menu page buttons
-        self.menu_play_button = Button(x=(title_w - 400) // 2, y=button_y * 0.7, w=400, h=120, text="PLAY",
-            font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+        self.menu_play_button = Button(x=(screen_w - 400) // 2, y=button_y * 0.7, w=400, h=120, text="PLAY",
+                                       font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000", border_width=5)
 
-        self.menu_leaderboard_button = Button(x=(title_w - 400) // 2, y=button_y * 1, w=400, h=120, text="Leaderboard",
-            font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+        self.menu_leaderboard_button = Button(x=(screen_w - 400) // 2, y=button_y * 1, w=400, h=120, text="Leaderboard",
+                                              font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000", border_width=5)
 
-        self.menu_rules_button = Button(x=(title_w - 400) // 2, y=button_y * 1.3, w=400, h=120, text="Rules/Tutorial",
-            font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+        self.menu_rules_button = Button(x=(screen_w - 400) // 2, y=button_y * 1.3, w=400, h=120, text="Rules/Tutorial",
+                                        font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000", border_width=5)
 
-        self.menu_settings_button = Button(x=(title_w - 400) // 2, y=button_y * 1.6, w=400, h=120, text="Settings",
-            font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+        self.menu_settings_button = Button(x=(screen_w - 400) // 2, y=button_y * 1.6, w=400, h=120, text="Settings",
+                                           font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000", border_width=5)
 
         self.exit_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="EXIT",
             font=button_font,colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000",border_width=5)
 
     def handle_event(self,event):
         global current_page
-        # when leaderboard button is clicked
-        if self.menu_leaderboard_button.is_clicked(event):
-            current_page = LeaderboardPage()
+        # when play button is clicked
+        if self.menu_play_button.is_clicked(event):
+            current_page = GameSettingsPage()
+
         # when exit button is clicked
         elif self.exit_button.is_clicked(event):
             pygame.quit()
@@ -809,35 +830,311 @@ class MenuPage(Page):
         self.menu_settings_button.draw(surface)
         self.exit_button.draw(surface)
 
-class LeaderboardPage(Page):
+class GameSettingsPage(Page):
     def __init__(self):
-        # leaderboard page title
-        self.leaderboard_title = Title("LEADERBOARD",title_font,"white", title_w // 2, title_h * 0.15)
+        # game settings page title
+        self.gs_title = Title("GAME SETTINGS", title_font,"white", screen_w // 2, screen_h * 0.15)
 
-        # leaderboard page buttons
-        self.back_button = Button(x=button_x * 0.15, y=button_y * 1.55, w=150, h=100, text="BACK",
+        # game settings page buttons
+        self.play_button = Button(x=((screen_w - 400) // 2), y=button_y * 1.7, w=300, h=100, text="START",
+                                  font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF", border_colour="#000000", border_width=5)
+        self.back_button = Button(x=button_x * 0.15, y=button_y * 1.7, w=150, h=100, text="BACK",
             font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
 
-    def handle_event(self,event):
+        self.gs_difficulty_easy = Button(x=button_x * 0.7, y = button_y * 1.1, w=200, h=80, text="EASY",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+        self.gs_difficulty_medium = Button(x=button_x * 1.05, y=button_y * 1.1, w=200, h=80, text="MEDIUM",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000",text_colour="#FFFFFF", border_colour="#000000", border_width=5)
+        self.gs_difficulty_hard = Button(x=button_x * 1.4, y=button_y * 1.1, w=200, h=80, text="HARD",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000",text_colour="#FFFFFF", border_colour="#000000", border_width=5)
+
+        self.gs_numplayer_2 = Button(x=button_x * 0.7, y=button_y * 1.3, w=200, h=80, text="2P",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000",text_colour="#FFFFFF", border_colour="#000000", border_width=5)
+        self.gs_numplayer_3 = Button(x=button_x * 1.05, y=button_y * 1.3, w=200, h=80, text="3P",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000",text_colour="#FFFFFF", border_colour="#000000", border_width=5)
+        self.gs_numplayer_4 = Button(x=button_x * 1.4, y=button_y * 1.3, w=200, h=80, text="4P",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000",text_colour="#FFFFFF", border_colour="#000000", border_width=5)
+
+        self.gs_numcards_5 = Button(x=button_x * 0.7, y=button_y * 1.5, w=200, h=80, text="5",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+        self.gs_numcards_6 = Button(x=button_x * 1.05, y=button_y * 1.5, w=200, h=80, text="6",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+        self.gs_numcards_7 = Button(x=button_x * 1.4, y=button_y * 1.5, w=200, h=80, text="7",
+            font=button_font, colour="#CD2626", hover_colour="#8B0000", text_colour="#FFFFFF",border_colour="#000000", border_width=5)
+
+        # game settings user inputs
+        self.gs_stacking = Toggle(x=screen_w * 0.5, y=screen_h * 0.25, w=250, h=80, border_colour="#000000", border_width=5)
+        self.gs_prompts = Toggle(x=screen_w * 0.5, y=screen_h * 0.35, w=250, h=80, border_colour="#000000", border_width=5)
+        self.gs_timer = Toggle(x=screen_w * 0.5, y=screen_h * 0.45, w=250, h=80, border_colour="#000000", border_width=5)
+
+        # game settings labels
+        self.gs_stacking_label = Title("Stacking:", normal_font, "white", screen_w * 0.4, screen_h * 0.3)
+        self.gs_prompts_label = Title("Prompts:", normal_font, "white", screen_w * 0.4, screen_h * 0.4)
+        self.gs_timer_label = Title("Timer:", normal_font, "white", screen_w * 0.4, screen_h * 0.5)
+        self.difficulty_label = Title("Difficulty:", normal_font, "white", screen_w * 0.2, screen_h * 0.6)
+        self.numplayer_label = Title("Players:", normal_font, "white", screen_w * 0.21, screen_h * 0.7)
+        self.numcards_label = Title("Starting cards:", normal_font, "white", screen_w * 0.16, screen_h * 0.8)
+
+        self.gs_stacking_status = Title("Disabled", normal_font, "white", screen_w * 0.8, screen_h * 0.3)
+        self.gs_prompts_status = Title("Disabled", normal_font, "white", screen_w * 0.8, screen_h * 0.4)
+        self.gs_timer_status = Title("Disabled", normal_font, "white", screen_w * 0.8, screen_h * 0.5)
+        self.gs_difficulty_status = Title("Easy", normal_font, "white", screen_w * 0.8, screen_h * 0.6)
+        self.gs_numplayer_status = Title("2", normal_font, "white", screen_w * 0.8, screen_h * 0.7)
+        self.gs_numcards_status = Title("5", normal_font, "white", screen_w * 0.8, screen_h * 0.8)
+
+        self.difficulty_value = "Easy"
+        self.numplayer_value = "2"
+        self.numcards_value = "5"
+
+    def handle_event(self, event):
         global current_page
+        # user input statuses/current values
+        self.gs_stacking_status = Title("Enabled" if self.gs_stacking.value else "Disabled", normal_font, "white", screen_w * 0.8, screen_h * 0.3)
+        self.gs_prompts_status = Title("Enabled" if self.gs_prompts.value else "Disabled", normal_font, "white", screen_w * 0.8, screen_h * 0.4)
+        self.gs_timer_status = Title("Enabled" if self.gs_timer.value else "Disabled", normal_font, "white", screen_w * 0.8, screen_h * 0.5)
+        self.gs_difficulty_status = Title(self.difficulty_value, normal_font, "white", screen_w * 0.8, screen_h * 0.6)
+        self.gs_numplayer_status = Title(self.numplayer_value, normal_font, "white", screen_w * 0.8, screen_h * 0.7)
+        self.gs_numcards_status = Title(self.numcards_value, normal_font, "white", screen_w * 0.8, screen_h * 0.8)
+        self.gs_stacking.handle_event(event)
+        self.gs_prompts.handle_event(event)
+        self.gs_timer.handle_event(event)
+
+        # Setting difficulty values
+        if self.gs_difficulty_easy.is_clicked(event):
+            self.difficulty_value = "Easy"
+        if self.gs_difficulty_medium.is_clicked(event):
+            self.difficulty_value = "Medium"
+        if self.gs_difficulty_hard.is_clicked(event):
+            self.difficulty_value = "Hard"
+
+        # Setting number of players
+        if self.gs_numplayer_2.is_clicked(event):
+            self.numplayer_value = "2"
+        if self.gs_numplayer_3.is_clicked(event):
+            self.numplayer_value = "3"
+        if self.gs_numplayer_4.is_clicked(event):
+            self.numplayer_value = "4"
+
+        # Setting number of cards
+        if self.gs_numcards_5.is_clicked(event):
+            self.numcards_value = "5"
+        if self.gs_numcards_6.is_clicked(event):
+            self.numcards_value = "6"
+        if self.gs_numcards_7.is_clicked(event):
+            self.numcards_value = "7"
+
+        # When start button is clicked
+        if self.play_button.is_clicked(event):
+            settings = {
+                "Stacking": self.gs_stacking.value,
+                "Prompts": self.gs_prompts.value,
+                "Timer": self.gs_timer.value,
+                "Difficulty": self.difficulty_value,
+                "Players": int(self.numplayer_value),
+                "Starting cards": int(self.numcards_value)
+            }
+            current_page = MainPlayPage(settings,card_images)
+
         # when back button is clicked
         if self.back_button.is_clicked(event):
             current_page = MenuPage()
-    # drawing leaderboard page
+
+    # drawing game settings page & additional features
     def draw_page(self,surface):
         super().draw_page(surface)
-        self.leaderboard_title.draw(surface)
+        self.gs_title.draw(surface)
         self.back_button.draw(surface)
+        self.play_button.draw(surface)
+        self.gs_stacking.draw(surface)
+        self.gs_stacking_label.draw(surface)
+        self.gs_prompts.draw(surface)
+        self.gs_prompts_label.draw(surface)
+        self.gs_timer.draw(surface)
+        self.gs_timer_label.draw(surface)
+        self.gs_stacking_status.draw(surface)
+        self.gs_prompts_status.draw(surface)
+        self.gs_timer_status.draw(surface)
+
+        self.difficulty_label.draw(surface)
+        self.gs_difficulty_easy.draw(surface)
+        self.gs_difficulty_medium.draw(surface)
+        self.gs_difficulty_hard.draw(surface)
+        self.gs_difficulty_status.draw(surface)
+
+        self.gs_numplayer_2.draw(surface)
+        self.gs_numplayer_3.draw(surface)
+        self.gs_numplayer_4.draw(surface)
+        self.gs_numplayer_status.draw(surface)
+        self.numplayer_label.draw(surface)
+
+        self.gs_numcards_5.draw(surface)
+        self.gs_numcards_6.draw(surface)
+        self.gs_numcards_7.draw(surface)
+        self.gs_numcards_status.draw(surface)
+        self.numcards_label.draw(surface)
+
+# Main Game Page
+class MainPlayPage(Page):
+    # Initialising the page + Game settings
+    def __init__(self, settings, image_dict):
+        self.settings = settings
+        self.image_dict = image_dict
+        self.deck = Deck(self.image_dict)
+        self.back_image = self.image_dict["Back"]
+        self.card_spacing = 30
+        self.card_w = 108
+        self.card_h = 150
+
+    # Discard Pile
+        self.discard_pile = []
+        self.discard_pile.append(self.deck.draw_card())
+
+    # Players
+        self.players = []
+        self.players.append(Player(human=True)) # USER
+        for i in range(self.settings["Players"] - 1):
+            self.players.append(Player(human=False)) # BOTS
+
+    # Distributing Cards
+        for player in self.players:
+            for i in range(self.settings["Starting cards"]):
+                player.draw_card(self.deck)
+
+    # Functions for drawing Player Hands
+    def draw_bottom_hand(self, player): # Bottom
+        hand_size = len(player.hand)
+        total_w = (hand_size - 1) * self.card_spacing + self.card_w
+        start_x = (screen_w // 2) - (total_w // 2)
+        y = screen_h - self.card_h - 40
+        for i, card in enumerate(player.hand):
+            x = start_x + i * self.card_spacing
+            card.draw(screen, x, y)
+
+    def draw_top_hand(self, player): # Top
+        hand_size = len(player.hand)
+        total_w = (hand_size - 1) * self.card_spacing + self.card_w
+        start_x = (screen_w // 2) - (total_w // 2)
+        for i in range(hand_size):
+            x = start_x + i * self.card_spacing
+            rotate = pygame.transform.rotate(self.back_image, 180)
+            screen.blit(rotate, (x, 40))
+
+    def draw_left_hand(self, player): # Left
+        hand_size = len(player.hand)
+        total_h = (hand_size - 1) * self.card_spacing + self.card_w
+        start_y = (screen_h // 2) - (total_h // 2)
+        for i in range(hand_size):
+            y = start_y + i * self.card_spacing
+            rotate = pygame.transform.rotate(self.back_image, -90)
+            screen.blit(rotate, (40, y))
+
+    def draw_right_hand(self, player): # Right
+        hand_size = len(player.hand)
+        total_h = (hand_size - 1) * self.card_spacing + self.card_w
+        start_y = (screen_h // 2) - (total_h // 2)
+        x = screen_w - self.card_h - 40
+        for i in range(hand_size):
+            y = start_y + i * self.card_spacing
+            rotate = pygame.transform.rotate(self.back_image, -90)
+            screen.blit(rotate, (x, y))
+
+   # Drawing the page
+    def draw_page(self, surface):
+        super().draw_page(surface)
+
+        # Deck & Discard Piles
+        self.discard_pile[-1].draw(screen, screen_w * 0.52, screen_h * 0.42)
+        if len(self.deck.deck) > 0:
+            surface.blit(self.back_image, (screen_w * 0.42, screen_h * 0.42))
+
+        # Player Hands
+        self.draw_bottom_hand(self.players[0])
+        player_count = len(self.players)
+        if player_count == 2: # 2 PLayer
+            self.draw_top_hand(self.players[1])
+        elif player_count == 3: # 3 Player
+            self.draw_left_hand(self.players[1])
+            self.draw_right_hand(self.players[2])
+        elif player_count == 4: # 4 Player
+            self.draw_left_hand(self.players[1])
+            self.draw_top_hand(self.players[2])
+            self.draw_right_hand(self.players[3])
+
+# Card Class
+class Card:
+    # Initialising each card
+    def __init__(self,colour,value,image_dict):
+        self.colour = colour
+        self.value = value
+        self.image = image_dict[f"{colour}_{value}"]
+
+    # Drawing each card
+    def draw(self,surface,x,y):
+        surface.blit(self.image,(x,y))
+
+# Loading all card images
+def load_card_images():
+    images = {}
+    colours = ["Aqua","Coral","Orange","Purple"]
+    values = ["0","1","2","3","4","5","6","7","8","9"]
+    for colour in colours:
+        for value in values:
+            key = f"{colour}_{value}"
+            images[key] = pygame.image.load(f"Cards/{colour}_{value}.png")
+            images[key] = pygame.transform.scale(images[key],(108,150))
+    images["Back"] = pygame.transform.scale(pygame.image.load("Cards/Back.png"),(108,150))
+    return images
+
+# Deck Class
+class Deck:
+    # Initialising the Deck
+    def __init__(self, image_dict):
+        self.deck = []
+        self.create_deck(image_dict)
+        random.shuffle(self.deck)
+
+    # Creating the Deck (Card list)
+    def create_deck(self, image_dict):
+        colours = ["Aqua","Coral","Orange","Purple"]
+        values = ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]
+        card_count = 100
+        for colour in colours:
+            for i in range(card_count // len(colours)):
+                value = random.choice(values)
+                self.deck.append(Card(colour,value,image_dict))
+
+    # Function for when a card is drawn
+    def draw_card(self):
+        return self.deck.pop()
+
+# Player Class
+class Player:
+    # Initialising each player
+    def __init__(self, human=True):
+        self.hand = []
+        self.human = human
+
+    # Draw card function
+    def draw_card(self, deck):
+        self.hand.append(deck.draw_card())
+
+#======#
+# MAIN #
+#======#
+
+# Login system global variables
+current_email = None
+current_code_sent = None
+current_error_message = None
+
+# Main game global variables
+runtime = True
+current_page = MenuPage()
+card_images = load_card_images()
 
 #==========#
 # GAMELOOP #
 #==========#
-
-runtime = True
-current_page = TitlePage()
-current_email = None
-current_code_sent = None
-current_error_message = None
 
 while runtime:
    for event in pygame.event.get():
